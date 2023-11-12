@@ -1,6 +1,7 @@
 const db = require("../models");
 const Transaction = db.transaction;
 const Op = db.Sequelize.Op;
+const TransactionDetail = db.transaction_details;
 const { getPagination, getPagingData } = require("./utils");
 
 // Create and Save a new Transaction
@@ -169,6 +170,30 @@ exports.deleteAll = (req, res) => {
 // };
 exports.confirmPayment = (req, res) => {
     try {
+        //  if(!req.query.TransactionId)
+        //     return res.status(404).send('Giao dịch không tồn tại')
+        const getTransaction = Transaction.findOne(req.query.TransactionId);
+        if (!getTransaction)
+            return res.status(404).send('Giao dịch không tồn tại')
+        if (getTransaction.transaction_status==2){
+            //chưa thanh toán thanh toán thất bại
+            return res.status(404).send('chưa thanh toán thanh toán thất bại');
+        }
+        if (getTransaction.transaction_status==0){
+            // chờ thanh toán
+            return res.status(404).send('chờ thanh toán');
+        }
+        // thanh toán thành công và cập nhật tài khoản
+        const getTransactionDetail = TransactionDetail.findAll(
+            {
+                where: {
+                    TransactionId: req.query.TransactionId,
+                    AccountId: null
+                }
+            }
+        );
+        if (!getTransactionDetail)
+            return res.status(404).send('Thanh toán thành công')
         
 
     } catch (err) {

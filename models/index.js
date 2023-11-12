@@ -92,7 +92,9 @@ db.sequelize.sync({
   db.user.belongsToMany(db.subscription_plan,{through:db.cart});
   //subcription_plan
   db.subscription_plan.hasMany(db.account);
+  db.subscription_plan.hasMany(db.transaction_details);
   db.subscription_plan.belongsToMany(db.user,{through: db.cart});
+
   //review
   db.review.belongsTo(db.transaction_details);
   //role

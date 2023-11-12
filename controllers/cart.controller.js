@@ -361,7 +361,8 @@ exports.payment = async (req, res) => {
                 price:element.price,
                 transaction_date: currentDate,
                 AccountId:req.body.Accountld||null,
-                TransactionId: createTransaction.id
+                TransactionId: createTransaction.id,
+                SubscriptionPlanId: element.SubscriptionPlanId
             }
             await TransactionDetail.create(transactionDetail);
 
