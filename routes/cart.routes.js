@@ -5,7 +5,8 @@ var router = require("express").Router();
 // Create a new Tutorial
 router.post("/", cart.create);
 // Retrieve all cart
-router.get("/getall",[authJwt.verifyToken], cart.findAll);
+router.get("/getall", cart.findAll);
+router.get("/getallbyuser/:userid", cart.findByUser);
 // Retrieve all published cart
 // router.get("/published", cart.findAllPublished);
 // Retrieve cart by Page

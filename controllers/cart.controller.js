@@ -7,7 +7,7 @@ const VoucherProduct = db.voucherProduct;
 const SubscriptionPlan = db.subscription_plan;
 const Voucher = db.voucher;
 const Transaction = db.transaction;
-const TransactionDetail=db.transaction_details;
+const TransactionDetail = db.transaction_details;
 const Op = db.Sequelize.Op;
 const Product = db.product;
 
@@ -54,6 +54,31 @@ exports.create = async (req, res) => {
     }
 };
 
+exports.findByUser = async (req, res) => {
+    try {
+        const carts = await Cart.findAll({
+            where: { UserId: req.params.userid },
+            include: [
+                {
+                    model: db.subscription_plan,
+                    as: 'Subscription_plan',
+                    include: [
+                        {
+                            model: db.product,
+                            as: 'Product',
+                        },
+                    ],
+                },
+            ],
+
+        });
+        res.send(carts);
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || "Some error occurred while retrieving Carts."
+        });
+    }
+};
 // Retrieve all Carts from the database.
 exports.findAll = async (req, res) => {
     try {
@@ -211,7 +236,7 @@ async function CheckOut(Items, VoucherCode) {
             if (item.quantity > (getSubscriptionPlan.total - getSubscriptionPlan.quantity_sold))
                 throw new Error("Số lượng không đủ");
             // lấy sản phẩm từ loại sản phẩm ở trên           
-            price=(getSubscriptionPlan.price * (1 - (getSubscriptionPlan.discount_percentage / 100)));
+            price = (getSubscriptionPlan.price * (1 - (getSubscriptionPlan.discount_percentage / 100)));
             const getProduct = await Product.findByPk(getSubscriptionPlan.ProductId);
             console.log(getProduct)
             // lấy voucher với điều kiện có productid hoặc có productCategoryId trùng khớp
@@ -325,7 +350,7 @@ async function CheckOut(Items, VoucherCode) {
 }
 exports.checkout = async (req, res) => {
     try {
-        const result = await CheckOut( req.body.Items, req.body.VoucherCode);
+        const result = await CheckOut(req.body.Items, req.body.VoucherCode);
 
         res.send(result)
     } catch (err) {
@@ -348,19 +373,19 @@ exports.payment = async (req, res) => {
             total_amount: result.total,
             total_discount: result.totalDiscount,
             total_payment: result.totalPayment,
-            PaymentMethodId: req.body.PaymentMethodId||1,
-            VoucherCode: req.body.VoucherCode||null,
+            PaymentMethodId: req.body.PaymentMethodId || 1,
+            VoucherCode: req.body.VoucherCode || null,
             UserId: req.body.UserId
         }
-        const createTransaction =await Transaction.create(transaction);
+        const createTransaction = await Transaction.create(transaction);
         result.Items.forEach(async element => {
             let transactionDetail = {
-                quantity:element.quantity,
-                oldTotal:element.oldTotal,
-                newTotal:element.newTotal,
-                price:element.price,
+                quantity: element.quantity,
+                oldTotal: element.oldTotal,
+                newTotal: element.newTotal,
+                price: element.price,
                 transaction_date: currentDate,
-                AccountId:req.body.Accountld||null,
+                AccountId: req.body.Accountld || null,
                 TransactionId: createTransaction.id,
                 SubscriptionPlanId: element.SubscriptionPlanId
             }

@@ -1,170 +1,273 @@
 const db = require("../models");
 const Product = db.product;
+const SubscriptionPlan = db.SubscriptionPlan;
+const TransactionDetail = db.TransactionDetail;
+const Review = db.review;
 const Op = db.Sequelize.Op;
 const { getPagination, getPagingData } = require("./utils");
 
-// Create and Save a new Product
-exports.create = (req, res) => {
-    // Validate request
-    if (!req.body.name) {
-        res.status(400).send({
-            message: "Content can not be empty!"
+exports.create = async (req, res) => {
+    try {
+        if (!req.body.name) {
+            res.status(400).send({
+                message: "Content can not be empty!"
+            });
+            return;
+        }
+
+        const product = {
+            name: req.body.name,
+            description: req.body.description,
+            content: req.body.content,
+            image: req.body.image,
+            thumbnail: req.body.thumbnail,
+            published: req.body.published,
+            ProductCategoryId: req.body.ProductCategoryId,
+            ProductTypeId: req.body.ProductTypeId
+        };
+
+        const createdProduct = await Product.create(product);
+        res.send(createdProduct);
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || "Some error occurred while creating the Product."
         });
-        return;
     }
-    // Create a Product
-    const product = {
-        name: req.body.name,
-        description: req.body.description,
-        content: req.body.content,
-        image:req.body.image,
-        thumbnail:req.body.thumbnail,
-        published: req.body.published,
-        ProductCategoryId: req.body.ProductCategoryId,
-        ProductTypeId: req.body.ProductTypeId
-        
-    };
-    // Save Product in the database
-    Product.create(product)
-    .then(data => {
-        res.send(data);
-    })
-    .catch(err => {
-        res.status(500).send({
-            message:
-            err.message || "Some error occurred while creating the Product."
-        });
-    });
 };
-// Retrieve all Products from the database.
-exports.findAll = (req, res) => {
-    const name = req.query.name;
-    var condition = name ? { name: { [Op.like]: `%${name}%` } } : null;
-    Product.findAll(
-        {
-            // include: [{// Notice `include` takes an ARRAY
-            //   model: Category
-            // }]
-            
-          }
-    )
-    .then(data => {
-        res.send(data);
-    })
-    .catch(err => {
+
+exports.findAll = async (req, res) => {
+    try {
+        const name = req.query.name;
+        const condition = name ? { name: { [Op.like]: `%${name}%` } } : null;
+        const products = await Product.findAll({ where: condition });
+        res.send(products);
+    } catch (err) {
         res.status(500).send({
-        message:
-            err.message || "Some error occurred while retrieving Products."
+            message: err.message || "Some error occurred while retrieving Products."
         });
-    });
+    }
 };
-// Retrieve by Paging
-exports.findAllByPage = (req, res) => {
-    const { page, size, name } = req.query;
-    
-    var condition = name ? { name: { [Op.like]: `%${name}%` } } : null;
-    const { limit, offset } = getPagination(page, size);
-    Product.findAndCountAll({ 
-        // include: [{// Notice `include` takes an ARRAY
-        //     model: Category
-        //   }],
-        where: condition, limit, offset })
-    .then(data => {
+
+exports.findAllByPage = async (req, res) => {
+    try {
+        const { page, size, name } = req.query;
+        const condition = name ? { name: { [Op.like]: `%${name}%` } } : null;
+        const { limit, offset } = getPagination(page, size);
+        const data = await Product.findAndCountAll({ where: condition, limit, offset });
+        console.log(data)
         const response = getPagingData(data, page, limit);
         res.send(response);
-    })
-    .catch(err => {
+    } catch (err) {
         res.status(500).send({
-            message:
-            err.message || "Some error occurred while retrieving Products."
+            message: err.message || "Some error occurred while retrieving Products."
         });
-    });
-}
-// Find a single Product with an id
-exports.findOne = (req, res) => {
-    const id = req.params.id;
-    Product.findByPk(id)
-    .then(data => {
-        res.send(data);
-    })
-    .catch(err => {
-        res.status(500).send({
-        message: "Error retrieving Product with id=" + id
-        });
-    });
+    }
 };
-// Update a Product by the id in the request
-exports.update = (req, res) => {
-    const id = req.params.id;
-    Product.update(req.body, {
-        where: { id: id }
-    })
-    .then(num => {
-        if (num == 1) {
+
+exports.findOne = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const product = await Product.findByPk(id);
+        res.send(product);
+    } catch (err) {
+        res.status(500).send({
+            message: `Error retrieving Product with id=${id}: ${err.message}`
+        });
+    }
+};
+
+exports.findOneDetail = async (req, res) => {
+    const productId = req.params.id;
+    try {
+
+        console.log('giá trị' + productId)
+        const product = await Product.findByPk(req.params.id);
+
+        const subscriptionPlans = await db.subscription_plan.findAll({
+            where: {
+                ProductId: productId
+            },
+        });
+
+        const SubscriptionPlanIds = subscriptionPlans.map((subscriptionPlan) => subscriptionPlan.ProductId);
+
+        const transactionDetails = await db.transaction_details.findAll({
+            where: {
+                SubscriptionPlanId: { [Op.in]: SubscriptionPlanIds },
+                AccountId: { [Op.ne]: null }
+            },
+        });
+
+        const transactionDetailIds = transactionDetails.map((transactionDetail) => transactionDetail.id);
+        const totalSold = transactionDetailIds.length;
+
+        const reviews = await db.review.findAll({
+            where: {
+                id: { [Op.in]: transactionDetailIds },
+            },
+        });
+        let rating = 0;
+        reviews.map((review) => { review.id; rating += review.vote });
+        res.send({
+            product,
+            subscriptionPlans,
+            totalSold,
+            rating,
+            reviews
+        });
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || `Error retrieving Product details with id=${req.params.id}: ${err.message}`
+        });
+    }
+};
+exports.findAllProductByPage = async (req, res) => {
+    const categoryid = req.query.categoryid ? req.query.categoryid : null;
+    // const productId = req.params.productid?req.params.productid:null;
+    // const productName = req.params.product?req.params.product:null;
+    const categoryName = req.query.categoryname ? req.query.categoryname : '';
+    // console.log(categoryName);
+    try {
+        const { limit, offset } = getPagination(req.query.page, req.query.size);
+        // tìm với tên là category 
+        // const condition = name ? { name: { [Op.like]: `%${categoryName}%` } } : null;
+        const categorys = await db.category.findOne({ where: { product_category_name: { [Op.like]: `%${categoryName}%` } } });
+        if (!categorys) {
+            const response = getPagingData([], req.params.page, req.params.limit);
             res.send({
-            message: "Product was updated successfully."
+                response
+            });
+        }
+        // console.log(categorys)
+        // console.log(categorys)
+        const categoryIds = categorys.id;
+        const products = await db.product.findAndCountAll({
+            where: {
+                ProductCategoryId: categoryIds,
+                published: { [Op.ne]: null }
+
+            },
+            limit, offset
+        });
+
+        // console.log(products);
+        const data = await Promise.all(products.rows.map(async (item) => {
+            // console.log(item.dataValues.id);
+            const product = await Product.findByPk(item.dataValues.id); 
+            // console.log(product)
+            const subscriptionPlans = await db.subscription_plan.findAll({
+                where: {
+                    ProductId: item.dataValues.id
+                },
+            });
+
+            const SubscriptionPlanIds = subscriptionPlans.map((subscriptionPlan) => subscriptionPlan.ProductId);
+
+            const transactionDetails = await db.transaction_details.findAll({
+                where: {
+                    SubscriptionPlanId: { [Op.in]: SubscriptionPlanIds },
+                    AccountId: { [Op.ne]: null }
+                },
+            });
+
+            const transactionDetailIds = transactionDetails.map((transactionDetail) => transactionDetail.id);
+            const totalSold = transactionDetailIds.length;
+
+            const reviews = await db.review.findAll({
+                where: {
+                    id: { [Op.in]: transactionDetailIds },
+                },
+            });
+            let rating = 0;
+            reviews.map((review) => { review.id; if (review.vote) rating += review.vote });
+
+            return {
+                product,
+                subscriptionPlans,
+                totalSold,
+                rating,
+                reviews
+            };
+        }
+
+        ));
+        products.rows = data;
+        
+        res.send(
+            getPagingData(products, req.params.page, limit)
+        );
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || `Error retrieving Product details with id=${req.params.id}: ${err.message}`
+        });
+    }
+};
+
+exports.update = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const [num] = await Product.update(req.body, { where: { id: id } });
+
+        if (num === 1) {
+            res.send({
+                message: "Product was updated successfully."
             });
         } else {
             res.send({
-            message: `Cannot update Product with id=${id}. Maybe Product was not found or req.body is empty!`
+                message: `Cannot update Product with id=${id}. Maybe Product was not found or req.body is empty!`
             });
         }
-    })
-    .catch(err => {
+    } catch (err) {
         res.status(500).send({
-            message: "Error updating Product with id=" + id 
+            message: `Error updating Product with id=${id}: ${err.message}`
         });
-    });
+    }
 };
-// Delete a Product with the specified id in the request
-exports.delete = (req, res) => {
-    const id = req.params.id;
-    Product.destroy({
-      where: { id: id }
-    })
-    .then(num => {
-        if (num == 1) {
+
+exports.delete = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const num = await Product.destroy({ where: { id: id } });
+
+        if (num === 1) {
             res.send({
-            message: "Product was deleted successfully!"
+                message: "Product was deleted successfully!"
             });
         } else {
             res.send({
-            message: `Cannot delete Product with id=${id}. Maybe Product was not found!`
+                message: `Cannot delete Product with id=${id}. Maybe Product was not found!`
             });
         }
-    })
-    .catch(err => {
+    } catch (err) {
         res.status(500).send({
-            message: "Could not delete Product with id=" + id
+            message: `Could not delete Product with id=${id}: ${err.message}`
         });
-    });
+    }
 };
-// Delete all Products from the database.
-exports.deleteAll = (req, res) => {
-    Product.destroy({
-        where: {},
-        truncate: false
-    })
-    .then(nums => {
-        res.send({ message: `${nums} Products were deleted successfully!` });
-    })
-    .catch(err => {
-        res.status(500).send({
-        message:
-            err.message || "Some error occurred while removing all Products."
+
+exports.deleteAll = async (req, res) => {
+    try {
+        const nums = await Product.destroy({
+            where: {},
+            truncate: false
         });
-    });
+        res.send({
+            message: `${nums} Products were deleted successfully!`
+        });
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || "Some error occurred while removing all Products."
+        });
+    }
 };
-// Find all published Products
-exports.findAllPublished = (req, res) => {
-    Product.findAll({ where: { published: true } })
-    .then(data => {
-        res.send(data);
-    })
-    .catch(err => {
+
+exports.findAllPublished = async (req, res) => {
+    try {
+        const products = await Product.findAll({ where: { published: true } });
+        res.send(products);
+    } catch (err) {
         res.status(500).send({
-            message:
-            err.message || "Some error occurred while retrieving Products."
+            message: err.message || "Some error occurred while retrieving Products."
         });
-    });
+    }
 };

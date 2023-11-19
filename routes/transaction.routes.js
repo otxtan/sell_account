@@ -18,5 +18,6 @@ router.put("/:id", transaction.update);
 router.delete("/:id", transaction.delete);
 // Delete all transaction
 router.delete("/",[authJwt.verifyToken], transaction.deleteAll);
-
+router.get("/transactionResults/:id",transaction.transactionResults);
+router.put("/confirmPayment/:id",transaction.confirmPayment);
 module.exports = router;

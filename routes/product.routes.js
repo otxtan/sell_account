@@ -5,13 +5,15 @@ var router = require("express").Router();
 // Create a new Tutorial
 router.post("/", product.create);
 // Retrieve all product
-router.get("/getall",[authJwt.verifyToken], product.findAll);
+router.get("/getall", product.findAll);
 // Retrieve all published product
 router.get("/published", product.findAllPublished);
 // Retrieve product by Page
 router.get("/getbypage", product.findAllByPage);
+router.get("/findallbylbypage", product.findAllProductByPage);
 // Retrieve a single Tutorial with id
 router.get("/:id", product.findOne);
+router.get("/detail/:id", product.findOneDetail);
 // Update a Tutorial with id
 router.put("/:id", product.update);
 // Delete a Tutorial with id
