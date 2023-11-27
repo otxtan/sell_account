@@ -10,6 +10,7 @@ router.get("/getall",[authJwt.verifyToken], voucher.findAll);
 router.get("/fixeddiscount", voucher.findAllFixedDiscount);
 // Retrieve voucher by Page
 router.get("/getbypage", voucher.findAllByPage);
+router.post("/getbyproductcategory",voucher.findAllbyProductCategory);
 // Retrieve a single Tutorial with id
 router.get("/:code", voucher.findOne);
 // Update a Tutorial with id

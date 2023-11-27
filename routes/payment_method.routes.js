@@ -5,7 +5,7 @@ var router = require("express").Router();
 // Create a new Tutorial
 router.post("/", payment_method.create);
 // Retrieve all payment_method
-router.get("/getall",[authJwt.verifyToken], payment_method.findAll);
+router.get("/getall", payment_method.findAll);
 // Retrieve all published payment_method
 // router.get("/published", payment_method.findAllPublished);
 // Retrieve payment_method by Page

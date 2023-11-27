@@ -10,6 +10,7 @@ router.get("/getall",[authJwt.verifyToken], transaction.findAll);
 // router.get("/published", transaction.findAllPublished);
 // Retrieve transaction by Page
 router.get("/getbypage", transaction.findAllByPage);
+router.get("/getbypage/byuser", transaction.findAllUByPageByUser);
 // Retrieve a single Tutorial with id
 router.get("/:id", transaction.findOne);
 // Update a Tutorial with id

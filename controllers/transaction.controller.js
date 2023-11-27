@@ -77,7 +77,25 @@ exports.findAllByPage = async (req, res) => {
         });
     }
 };
-
+exports.findAllUByPageByUser = async (req, res) => {
+    try {
+        const { page, size, userid } = req.query;
+        var condition = userid ? { UserId: { [Op.like]: `%${userid}%` } } : null;
+        const { limit, offset } = getPagination(page, size);
+        const data = await Transaction.findAndCountAll({
+            // include: [{// Notice `include` takes an ARRAY
+            //     model: Category
+            //   }],
+            where: condition, limit, offset
+        });
+        const response = getPagingData(data, page, limit);
+        res.send(response);
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || "Some error occurred while retrieving Transactions."
+        });
+    }
+};
 // Find a single Transaction with an id
 exports.findOne = async (req, res) => {
     try {

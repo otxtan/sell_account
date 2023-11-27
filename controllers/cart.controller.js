@@ -136,8 +136,9 @@ exports.findOne = async (req, res) => {
 // Update a Cart by the id in the request
 exports.update = async (req, res) => {
     const id = req.params.id;
-
+    console.log(req.body);
     try {
+        
         if (parseInt(req.body.quantity) == 0) {
 
             await Cart.destroy({ where: { id: id } });
@@ -230,13 +231,51 @@ async function CheckOut(Items, VoucherCode) {
         // lặp qua từng sản phẩm
         Items = await Promise.all(Items.map(async (item) => {
             // lấy loại gói
+            let price=0;
             const getSubscriptionPlan = await SubscriptionPlan.findByPk(item.SubscriptionPlanId);
             if (!getSubscriptionPlan)
-                throw new Error("Sản phẩm không còn tồn tại");
-            if (item.quantity > (getSubscriptionPlan.total - getSubscriptionPlan.quantity_sold))
-                throw new Error("Số lượng không đủ");
-            // lấy sản phẩm từ loại sản phẩm ở trên           
+                // throw new Error("Sản phẩm không còn tồn tại");
+            {
+                // discount = getVoucher.discountamount;
+                // totalDiscount += discount;
+                oldTotal = 0;
+                newTotal = 0;
+                total += oldTotal;
+                return {
+                    ...item,
+                    price,
+                    oldTotal,
+                    newTotal,
+                    productId: getSubscriptionPlan.ProductId,
+                    message: 'Sản phẩm không còn tồn tại'
+                };
+                // return { error: 'Sản phẩm không còn tồn tại', errorCode: 'The product is no longer available' };
+            }
             price = (getSubscriptionPlan.price * (1 - (getSubscriptionPlan.discount_percentage / 100)));
+            if (item.quantity > (getSubscriptionPlan.total - getSubscriptionPlan.quantity_sold)){
+                {
+                    // discount = getVoucher.discountamount;
+                    // totalDiscount += discount;
+                    
+                    oldTotal = 0;
+                    newTotal = 0;
+                    total += oldTotal;
+                    return {
+                        ...item,
+                        price,
+                        oldTotal,
+                        newTotal,
+                        productId: getSubscriptionPlan.ProductId,
+                        message: 'Số lượng không đủ'
+                    };
+                    // return { error: 'Số lượng không đủ', errorCode: 'The product is no longer available' };
+                }
+                // throw new Error("Số lượng không đủ");
+                // return { error: 'Số lượng không đủ', errorCode: 'QUANTITY_NOT_ENOUGH' };
+            }
+
+            // lấy sản phẩm từ loại sản phẩm ở trên           
+             price = (getSubscriptionPlan.price * (1 - (getSubscriptionPlan.discount_percentage / 100)));
             const getProduct = await Product.findByPk(getSubscriptionPlan.ProductId);
             console.log(getProduct)
             // lấy voucher với điều kiện có productid hoặc có productCategoryId trùng khớp
@@ -266,7 +305,7 @@ async function CheckOut(Items, VoucherCode) {
             // kiểm tra voucher đã lấy
             if (getVoucherCategoryProduct) {
                 // kiểm tra xem sản phẩm có đủ điều kiện áp dụng voucher không
-                if (getSubscriptionPlan.price >= getVoucher.min_order_amount) {
+                if ((price*item.quantity) >= getVoucher.min_order_amount) {
                     let discount;
                     // kiểm tra xem voucher áp dụng theo % hay giảm trực tiếp   
                     if (getVoucher.discount_percentage != null) {
@@ -318,9 +357,7 @@ async function CheckOut(Items, VoucherCode) {
 
     }
     else {
-        if (VoucherCode) {
-            throw new Error('Voucher không tồn tại hoặc đã hết lượt sử dụng');
-        }
+       
 
         Items = await Promise.all(Items.map(async (item) => {
             const getSubscriptionPlan = await SubscriptionPlan.findByPk(item.SubscriptionPlanId);
@@ -333,7 +370,8 @@ async function CheckOut(Items, VoucherCode) {
                     ...item,
                     price,
                     productId: getSubscriptionPlan.ProductId,
-                    oldTotal
+                    oldTotal,
+                    
                 };
             }
             else {
@@ -350,8 +388,9 @@ async function CheckOut(Items, VoucherCode) {
 }
 exports.checkout = async (req, res) => {
     try {
+        console.log(req.body)
         const result = await CheckOut(req.body.Items, req.body.VoucherCode);
-
+        console.log(result)
         res.send(result)
     } catch (err) {
         res.status(500).send({

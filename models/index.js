@@ -85,6 +85,7 @@ db.transaction.hasMany(db.transaction_details);
 db.product.hasMany(db.subscription_plan);
 //transaction_detail
 db.transaction_details.belongsTo(db.account);
+db.transaction_details.belongsTo(db.subscription_plan)
 db.transaction_details.hasOne(db.review);
 //user
 db.user.hasMany(db.transaction);
@@ -95,6 +96,7 @@ db.subscription_plan.hasMany(db.account);
 db.subscription_plan.hasMany(db.transaction_details);
 db.subscription_plan.belongsToMany(db.user, { through: db.cart });
 db.subscription_plan.belongsTo(db.product);
+db.subscription_plan.hasMany(db.transaction_details)
 db.cart.belongsTo(db.subscription_plan);
 db.cart.belongsTo(db.user);
 

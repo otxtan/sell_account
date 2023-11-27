@@ -61,10 +61,13 @@ app.use(function(req, res, next) {
   next(createError(404));
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 app.use(cors({
-  origin: 'http://localhost:3001',
+  origin: 'http://localhost:3000',
 }));
+var server = app.listen(80, function() {
+  console.log('Ready on port %d', server.address().port);
+});
 // error handler
 app.use(function(err, req, res, next) {
   // set locals, only providing error in development

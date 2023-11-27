@@ -6,6 +6,7 @@ var router = require("express").Router();
 router.post("/", transaction_detail.create);
 // Retrieve all transaction_detail
 router.get("/getall",[authJwt.verifyToken], transaction_detail.findAll);
+router.get("/getallbytransaction/:id", transaction_detail.findAllByTransactionId);
 // Retrieve all published transaction_detail
 router.get("/published", transaction_detail.findAllPublished);
 // Retrieve transaction_detail by Page

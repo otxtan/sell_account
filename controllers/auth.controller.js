@@ -13,11 +13,22 @@ exports.signin = async (req, res) => {
   const pwd = req.body.password;
 
   try {
-    const data = await User.findOne({
+    let data = await User.findOne({
       where: {
         username: msv,
       },
     });
+    const getUser=await Customer.findOne({
+      where:{
+        email_address: msv
+      }
+    })
+    
+    if (getUser!=null){
+      const getUserbyEmail = await User.findByPk(getUser.UserId);
+      console.log(getUserbyEmail)
+      if (getUserbyEmail!=null) data=getUserbyEmail;
+    }
 
     if (!data) {
       return res.status(403).send({
@@ -36,7 +47,9 @@ exports.signin = async (req, res) => {
 
       const token = jwt.sign(
         {
-          User: data.username,
+          UserId:data.id,
+          username: data.username
+
         },
         config.secret,
         {
