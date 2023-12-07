@@ -70,6 +70,8 @@ db.voucher.hasMany(db.transaction);
 db.voucher.belongsToMany(db.product, { through: db.voucherProduct });
 db.voucher.belongsToMany(db.category, { through: db.voucherCategory })
 db.product.belongsToMany(db.voucher, { through: db.voucherProduct });
+db.product.belongsTo(db.product_type);
+db.product.belongsTo(db.category);
 db.category.belongsToMany(db.voucher, { through: db.voucherCategory });
 // db.voucherProduct = sequelize.define('Vouchers_products', {});
 // db.voucher.belongsToMany(db.product, { through: voucherProduct });

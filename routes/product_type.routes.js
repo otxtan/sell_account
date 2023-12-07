@@ -5,7 +5,7 @@ var router = require("express").Router();
 // Create a new Tutorial
 router.post("/", product_type.create);
 // Retrieve all product_type
-router.get("/getall",[authJwt.verifyToken], product_type.findAll);
+router.get("/getall", product_type.findAll);
 // Retrieve all published product_type
 // router.get("/published", product_type.findAllPublished);
 // Retrieve product_type by Page

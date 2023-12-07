@@ -5,7 +5,7 @@ var router = require("express").Router();
 // Create a new Tutorial
 router.post("/", subscription_plan.create);
 // Retrieve all subscription_plan
-router.get("/getall",[authJwt.verifyToken], subscription_plan.findAll);
+router.get("/getall", subscription_plan.findAll);
 // Retrieve all published subscription_plan
 // router.get("/published", subscription_plan.findAllPublished);
 // Retrieve subscription_plan by Page

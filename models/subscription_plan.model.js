@@ -21,8 +21,12 @@ module.exports = (sequelize, Sequelize) => {
             allowNull: false
         },
         price: {
-            type: Sequelize.FLOAT,
-            allowNull: false
+            type: Sequelize.DECIMAL(18, 2),
+            allowNull: true
+        },
+        published: {
+            type: Sequelize.BOOLEAN,
+            allowNull: true
         }
     })
     return Subscription_plan;

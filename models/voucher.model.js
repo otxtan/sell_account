@@ -5,13 +5,13 @@ module.exports = (sequelize, Sequelize) => {
             primaryKey: true
         },
         discount_amount: {
-            type: Sequelize.DOUBLE
+            type: Sequelize.DECIMAL(18, 2)
         },
         discount_percentage: {
             type: Sequelize.DOUBLE
         },
         min_order_amount: {
-            type: Sequelize.DOUBLE
+            type: Sequelize.DECIMAL(18, 2)
         },
         start_date: {
             type: Sequelize.DATE

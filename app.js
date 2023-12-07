@@ -23,6 +23,8 @@ var voucherRouter = require('./routes/voucher.routes');
 var voucher_productRouter=require('./routes/voucher_product.routes');
 var voucher_categoryRouter=require('./routes/voucher_category.routes');
 var authsRouter=require('./routes/auth.routes');
+const uploadRouter = require('./routes/cloudinary-upload');
+require('dotenv').config();
 
 var app = express();
 
@@ -56,6 +58,8 @@ app.use('/auth',authsRouter);
 app.use('/cart',cart);
 app.use('/voucher_product',voucher_productRouter);
 app.use('/voucher_category',voucher_categoryRouter);
+
+app.use('/uploads', uploadRouter);
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
@@ -65,10 +69,13 @@ const PORT = process.env.PORT || 80;
 app.use(cors({
   origin: 'http://localhost:3000',
 }));
-var server = app.listen(80, function() {
-  console.log('Ready on port %d', server.address().port);
-});
+// var server = app.listen(80, function() {
+//   console.log('Ready on port %d', server.address().port);
+// });
 // error handler
+
+
+app.get("/", express.static(path.join(__dirname, "./public")));
 app.use(function(err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;

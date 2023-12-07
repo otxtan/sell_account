@@ -10,11 +10,11 @@ module.exports = (sequelize, Sequelize) => {
             allowNull: false
         },
         oldTotal: {
-            type: Sequelize.DOUBLE,
+            type: Sequelize.DECIMAL(18, 2),
             allowNull: false
         },
         newTotal: {
-            type: Sequelize.DOUBLE,
+            type: Sequelize.DECIMAL(18, 2),
             allowNull: true
         },
         transaction_date: {
