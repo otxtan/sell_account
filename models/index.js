@@ -92,6 +92,7 @@ db.transaction_details.hasOne(db.review);
 //user
 db.user.hasMany(db.transaction);
 db.user.hasOne(db.customer);
+db.user.belongsTo(db.role);
 db.user.belongsToMany(db.subscription_plan, { through: db.cart });
 //subcription_plan
 db.subscription_plan.hasMany(db.account);
@@ -106,8 +107,10 @@ db.cart.belongsTo(db.user);
 db.review.belongsTo(db.transaction_details);
 //role
 db.role.hasMany(db.user);
-//cart
 
+//cart
+//customer
+db.customer.belongsTo(db.user);
 
 
 

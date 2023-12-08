@@ -5,7 +5,7 @@ var router = require("express").Router();
 // Create a new Tutorial
 router.post("/", role.create);
 // Retrieve all role
-router.get("/getall",[authJwt.verifyToken], role.findAll);
+router.get("/getall", role.findAll);
 // Retrieve all published role
 router.get("/published", role.findAllPublished);
 // Retrieve role by Page

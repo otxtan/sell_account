@@ -74,7 +74,7 @@ exports.register = async (req, res) => {
     password: req.body.password ? req.body.password : "",
     salt: "",
     status: true,
-    roleId: 1
+    roleId: parseInt(req.body.roleId)||1
   };
 
   const customer = {

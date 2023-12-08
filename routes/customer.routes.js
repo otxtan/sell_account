@@ -10,10 +10,13 @@ router.get("/getall",[authJwt.verifyToken], customer.findAll);
 router.get("/published", customer.findAllPublished);
 // Retrieve customer by Page
 router.get("/getbypage", customer.findAllByPage);
+router.get("/findallcustomeruserroleBypage",customer.findAllCustomerUserRoleByPage);
 // Retrieve a single Tutorial with id
 router.get("/:id", customer.findOne);
+router.get("/cms/:id", customer.findOneCMS);
 // Update a Tutorial with id
 router.put("/:id", customer.update);
+router.put("/updatecustomermanagement/:id",customer.updateCustomer);
 // Delete a Tutorial with id
 router.delete("/:id", customer.delete);
 // Delete all customer

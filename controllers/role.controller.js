@@ -31,14 +31,10 @@ exports.create = (req, res) => {
 };
 // Retrieve all Roles from the database.
 exports.findAll = (req, res) => {
-    const title = req.query.title;
-    var condition = title ? { title: { [Op.like]: `%${title}%` } } : null;
+    // const title = req.query.title;
+    // var condition = title ? { title: { [Op.like]: `%${title}%` } } : null;
     Role.findAll(
-        {
-            include: [{// Notice `include` takes an ARRAY
-              model: Category
-            }]
-          }
+      
     )
     .then(data => {
         res.send(data);

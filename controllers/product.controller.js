@@ -145,7 +145,7 @@ exports.findAllProductByPage = async (req, res) => {
         const products = await db.product.findAndCountAll({
             where: {
                 ProductCategoryId: categoryIds,
-                published: { [Op.ne]: null }
+                published: { [Op.ne]: false }
 
             },
             limit, offset
@@ -208,6 +208,7 @@ exports.findAllProductCategoryTypeByPage = async (req, res) => {
     // const categoryid = req.query.categoryid ? req.query.categoryid : null;
     // const productId = req.params.productid?req.params.productid:null;
     // const productName = req.params.product?req.params.product:null;
+    const name = req.query.name?req.query.name:null;
     const categoryId = req.query.categoryid ? req.query.categoryid : null;
     const typeId = req.query.typeid ? req.query.typeid : null;
     console.log(req.query);
@@ -246,6 +247,9 @@ exports.findAllProductCategoryTypeByPage = async (req, res) => {
         
         if (typeId!=null&&typeId!='undefined') {
             whereCondition.ProductTypeId = typeId;
+        }
+        if (name!=null&&name!='undefined'){
+            whereCondition.name = { [Op.like]: `%${name}%` };
         }
         const products = await db.product.findAndCountAll({
             where: whereCondition,
