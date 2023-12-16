@@ -14,9 +14,8 @@ exports.create = (req, res) => {
     }
     // Create a Role
     const role = {
-        name: req.body.name
-        
     };
+    req.body.name?role.name= req.body.name:null;
     // Save Role in the database
     Role.create(role)
     .then(data => {

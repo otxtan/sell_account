@@ -13,6 +13,9 @@ module.exports = (sequelize, Sequelize) => {
         min_order_amount: {
             type: Sequelize.DECIMAL(18, 2)
         },
+        minimize: {
+            type: Sequelize.DECIMAL(18, 2)
+        },
         start_date: {
             type: Sequelize.DATE
         },

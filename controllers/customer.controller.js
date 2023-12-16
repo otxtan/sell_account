@@ -111,8 +111,8 @@ exports.findAllCustomerUserRoleByPage = async (req, res) => {
 
 // Find a single Customer with an id
 exports.findOne = async (req, res) => {
+    const id = req.params.id;
     try {
-        const id = req.params.id;
         const data = await Customer.findByPk(id);
         res.send(data);
     } catch (err) {

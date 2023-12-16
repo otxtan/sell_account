@@ -1,5 +1,6 @@
 
 const db = require("../models");
+const { payment } = require("./cart.controller");
 const Transaction = db.transaction;
 const Op = db.Sequelize.Op;
 const TransactionDetail = db.transaction_details;
@@ -58,16 +59,44 @@ exports.findAll = async (req, res) => {
 };
 
 // Retrieve by Paging
+// exports.findAllByPage = async (req, res) => {
+//     try {
+//         const { page, size, title } = req.query;
+//         var condition = title ? { title: { [Op.like]: `%${title}%` } } : null;
+//         const { limit, offset } = getPagination(page, size);
+//         const data = await Transaction.findAndCountAll({
+//             // include: [{// Notice `include` takes an ARRAY
+//             //     model: Category
+//             //   }],
+//             where: condition, limit, offset
+//         });
+//         const response = getPagingData(data, page, limit);
+//         res.send(response);
+//     } catch (err) {
+//         res.status(500).send({
+//             message: err.message || "Some error occurred while retrieving Transactions."
+//         });
+//     }
+// };
 exports.findAllByPage = async (req, res) => {
     try {
-        const { page, size, title } = req.query;
-        var condition = title ? { title: { [Op.like]: `%${title}%` } } : null;
+        const { page, size, transaction_status } = req.query;
+        var condition = transaction_status ? { transaction_status: { [Op.like]: `%${transaction_status}%` } } : null;
         const { limit, offset } = getPagination(page, size);
         const data = await Transaction.findAndCountAll({
             // include: [{// Notice `include` takes an ARRAY
             //     model: Category
             //   }],
-            where: condition, limit, offset
+            where: condition, limit, offset,
+            include: [
+                {
+                    model: db.payment_method
+                },
+                {
+                    model: db.user
+                }
+
+            ]
         });
         const response = getPagingData(data, page, limit);
         res.send(response);
@@ -206,16 +235,17 @@ exports.confirmPayment = async (req, res) => {
         const getTransaction = await Transaction.findByPk(req.params.id);
         if (!getTransaction)
             return res.status(404).send('Giao dịch không tồn tại');
-        console.log(req.params.id)
-        const num = await Transaction.update(req.body, 
-            { where: {
-                 id: req.params.id 
-                } 
+        
+        const num = await Transaction.update({ transaction_status: req.body.transaction_status },
+            {
+                where: {
+                    id: req.params.id
+                }
             });
 
         if (num == 1) {
             // add account vào transactiondetail
-            const getTransactionDetail =await TransactionDetail.findAll({
+            const getTransactionDetail = await TransactionDetail.findAll({
                 where: {
                     TransactionId: req.params.id
                 }
@@ -225,16 +255,17 @@ exports.confirmPayment = async (req, res) => {
                 let getAccount = await Account.findOne({
                     where: {
                         SubscriptionPlanId: element.SubscriptionPlanId,
+                        status: false
                     }
                 })
-               
-                
-                await TransactionDetail.update({ AccountId: getAccount.id }, { where: { id: element.id } });
+                await db.account.update({ status: true }, { where: { id: getAccount.id } })
 
+                await TransactionDetail.update({ AccountId: getAccount.id }, { where: { id: element.id } });
+                console.log(req.body)
             });
-            res.send({ message: "Transaction was updated successfully." });
+            return res.send( "Transaction was updated successfully." );
         } else {
-            res.send({ message: `Cannot update Transaction with id=${id}. Maybe Transaction was not found or req.body is empty!` });
+            return res.send( `Cannot update Transaction with id. Maybe Transaction was not found or req.body is empty!` );
         }
     } catch (err) {
         res.status(500).send({

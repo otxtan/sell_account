@@ -32,11 +32,18 @@ exports.create = async (req, res) => {
             where: condition,
         });
         if (!cart) {
-            const user = await User.findByPk(parseInt(req.body.UserId));
+            const user = await User.findByPk(req.body.UserId);
+            console.log(user)
             const subscription = await SubscriptionPlan.findByPk(parseInt(req.body.SubscriptionPlanId));
-            createCart = await user.addSubscription_plans(subscription, { through: { quantity: parseInt(req.body.quantity) } });
-            console.log(createCart[0])
-            return res.send(createCart[0]);
+            // createCart = await user.addSubscription_plans(subscription, { through: { quantity: parseInt(req.body.quantity) } });
+            createCart = await db.cart.create(
+                {
+                    UserId: user.id,
+                    SubscriptionPlanId: subscription.id,
+                    quantity: parseInt(req.body.quantity)
+                })
+            console.log(createCart)
+            return res.send(createCart);
 
         }
         else {
@@ -46,7 +53,7 @@ exports.create = async (req, res) => {
             cart.quantity += parseInt(req.body.quantity);
             cart.save()
         }
-        res.send(cart);
+        return res.send(cart);
     } catch (err) {
         res.status(500).send({
             message: err.message || "Some error occurred while creating the Cart."
@@ -61,11 +68,11 @@ exports.findByUser = async (req, res) => {
             include: [
                 {
                     model: db.subscription_plan,
-                    as: 'Subscription_plan',
+
                     include: [
                         {
                             model: db.product,
-                            as: 'Product',
+
                         },
                     ],
                 },
@@ -79,6 +86,7 @@ exports.findByUser = async (req, res) => {
         });
     }
 };
+
 // Retrieve all Carts from the database.
 exports.findAll = async (req, res) => {
     try {
@@ -138,7 +146,7 @@ exports.update = async (req, res) => {
     const id = req.params.id;
     console.log(req.body);
     try {
-        
+
         if (parseInt(req.body.quantity) == 0) {
 
             await Cart.destroy({ where: { id: id } });
@@ -231,10 +239,10 @@ async function CheckOut(Items, VoucherCode) {
         // lặp qua từng sản phẩm
         Items = await Promise.all(Items.map(async (item) => {
             // lấy loại gói
-            let price=0;
+            let price = 0;
             const getSubscriptionPlan = await SubscriptionPlan.findByPk(item.SubscriptionPlanId);
             if (!getSubscriptionPlan)
-                // throw new Error("Sản phẩm không còn tồn tại");
+            // throw new Error("Sản phẩm không còn tồn tại");
             {
                 // discount = getVoucher.discountamount;
                 // totalDiscount += discount;
@@ -252,11 +260,11 @@ async function CheckOut(Items, VoucherCode) {
                 // return { error: 'Sản phẩm không còn tồn tại', errorCode: 'The product is no longer available' };
             }
             price = (getSubscriptionPlan.price * (1 - (getSubscriptionPlan.discount_percentage / 100)));
-            if (item.quantity > (getSubscriptionPlan.total - getSubscriptionPlan.quantity_sold)){
+            if (item.quantity > (getSubscriptionPlan.total - getSubscriptionPlan.quantity_sold)) {
                 {
                     // discount = getVoucher.discountamount;
                     // totalDiscount += discount;
-                    
+
                     oldTotal = 0;
                     newTotal = 0;
                     total += oldTotal;
@@ -275,9 +283,9 @@ async function CheckOut(Items, VoucherCode) {
             }
 
             // lấy sản phẩm từ loại sản phẩm ở trên           
-             price = (getSubscriptionPlan.price * (1 - (getSubscriptionPlan.discount_percentage / 100)));
+            price = (getSubscriptionPlan.price * (1 - (getSubscriptionPlan.discount_percentage / 100)));
             const getProduct = await Product.findByPk(getSubscriptionPlan.ProductId);
-            console.log(getProduct)
+           
             // lấy voucher với điều kiện có productid hoặc có productCategoryId trùng khớp
 
             const getVoucherCategory = await VoucherCategory.findOne({
@@ -305,14 +313,23 @@ async function CheckOut(Items, VoucherCode) {
             // kiểm tra voucher đã lấy
             if (getVoucherCategoryProduct) {
                 // kiểm tra xem sản phẩm có đủ điều kiện áp dụng voucher không
-                if ((price*item.quantity) >= getVoucher.min_order_amount) {
+                if ((price * item.quantity) >= getVoucher.min_order_amount) {
                     let discount;
                     // kiểm tra xem voucher áp dụng theo % hay giảm trực tiếp   
                     if (getVoucher.discount_percentage != null) {
-                        discount = (price * item.quantity) * (getVoucher.discount_percentage / 100);
-                        totalDiscount += discount;
                         oldTotal = price * item.quantity;
-                        newTotal = (price * item.quantity) - discount;
+                        discount = (price * item.quantity) * (getVoucher.discount_percentage / 100);
+                        if (totalDiscount + discount > Number(getVoucher.minimize)) {
+                            console.log(`gia tri cua typeof ${typeof getVoucher.minimize}`)
+                            newTotal = (price * item.quantity) - (Number(getVoucher.minimize) - totalDiscount);
+                            totalDiscount = Number(getVoucher.minimize);
+                        }
+                        else {
+                            totalDiscount += discount;
+                            // oldTotal = price * item.quantity;
+                            newTotal = (price * item.quantity) - discount;
+
+                        }
                         // thêm giá cũ giá mới
                         total += oldTotal;
 
@@ -327,9 +344,17 @@ async function CheckOut(Items, VoucherCode) {
                     }
                     else {
                         discount = getVoucher.discountamount;
-                        totalDiscount += discount;
                         oldTotal = price * item.quantity;
-                        newTotal = (price * item.quantity) - discount;
+                        if ((totalDiscount + discount) > Number(getVoucher.minimize)) {
+                            newTotal = (price * item.quantity) - (Number(getVoucher.minimize) - totalDiscount);
+                            totalDiscount = Number(getVoucher.minimize);
+                        }
+                        else {
+
+                            totalDiscount += discount;
+
+                            newTotal = (price * item.quantity) - discount;
+                        }
                         total += oldTotal;
                         return {
                             ...item,
@@ -357,7 +382,7 @@ async function CheckOut(Items, VoucherCode) {
 
     }
     else {
-       
+
 
         Items = await Promise.all(Items.map(async (item) => {
             const getSubscriptionPlan = await SubscriptionPlan.findByPk(item.SubscriptionPlanId);
@@ -371,7 +396,7 @@ async function CheckOut(Items, VoucherCode) {
                     price,
                     productId: getSubscriptionPlan.ProductId,
                     oldTotal,
-                    
+
                 };
             }
             else {
@@ -382,6 +407,7 @@ async function CheckOut(Items, VoucherCode) {
         }));
         // voucher ? message = 'Voucher không tồn tại hoặc đã hết lượt sử dụng':'';
     }
+    
     return { Items, VoucherCode, total, totalDiscount, totalPayment: total - totalDiscount };
 
 
@@ -400,6 +426,8 @@ exports.checkout = async (req, res) => {
 };
 exports.payment = async (req, res) => {
     try {
+        // console.log(req.body)
+        // return res.send('pass')
         // check lại thông tin 
         const result = await CheckOut(req.body.Items, req.body.VoucherCode);
         console.log(result)
@@ -429,11 +457,25 @@ exports.payment = async (req, res) => {
                 SubscriptionPlanId: element.SubscriptionPlanId
             }
             await TransactionDetail.create(transactionDetail);
+            console.log("pass")
 
         });
+        if (req.body.cartId.length > 0) {
+            await db.cart.destroy({
+                where: {
+                    id: {
+                        [Op.in]: req.body.cartId
+                    }
+                }
+            }
+            )
+            console.log("pass")
+
+        }
 
 
-        res.send(result)
+
+        res.send(createTransaction)
     } catch (err) {
         res.status(500).send({
             message: err.message || "Some error occurred while processing payment."

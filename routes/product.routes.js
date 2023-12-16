@@ -10,8 +10,10 @@ router.get("/getall", product.findAll);
 router.get("/published", product.findAllPublished);
 // Retrieve product by Page
 router.get("/getbypage", product.findAllByPage);
-router.get("/findallbylbypage", product.findAllProductByPage);
+router.get("/findAllProductDetailByPage", product.findAllProductDetailByPage);
+router.get("/findallbyCategoryNamebypage", product.findAllProductByCategoryByPage);
 router.get("/findallproductcategorytypebypage", product.findAllProductCategoryTypeByPage);
+router.post("/getProductCheckout", product.getProductCheckOut);
 // Retrieve a single Tutorial with id
 router.get("/:id", product.findOne);
 router.get("/detail/:id", product.findOneDetail);

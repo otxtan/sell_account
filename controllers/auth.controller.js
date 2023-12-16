@@ -13,33 +13,56 @@ exports.signin = async (req, res) => {
   const pwd = req.body.password;
 
   try {
-    let data = await User.findOne({
+    const findUserByUsername = await User.findOne({
       where: {
         username: msv,
       },
+      include:[
+        {
+          model:db.role
+        },
+        {
+          model:db.customer
+        }
+      ]
     });
-    const getUser=await Customer.findOne({
+    // console.log(findUserByUsername.role)
+    const findUserByEmail=await Customer.findOne({
       where:{
         email_address: msv
-      }
+      },
+      include:[
+        {
+          model:db.user,
+          include:[
+            {
+              model:db.role
+            }
+          ]
+        }
+      ]
     })
-    
-    if (getUser!=null){
-      const getUserbyEmail = await User.findByPk(getUser.UserId);
-      console.log(getUserbyEmail)
-      if (getUserbyEmail!=null) data=getUserbyEmail;
+    console.log(findUserByUsername)
+    let userInfo
+    if(findUserByUsername!=null&&findUserByUsername!='undefined'){
+      userInfo={username:msv,salt:findUserByUsername.salt,password:findUserByUsername.password,role:findUserByUsername.role.name,UserId:findUserByUsername.id}
+    }
+    if(findUserByEmail!=null&&findUserByEmail!='undefined'){
+     
+      userInfo={username:msv,salt:findUserByEmail.User.salt,password:findUserByEmail.User.password,role:findUserByEmail.User.role.name,UserId:findUserByEmail.UserId}
     }
 
-    if (!data) {
+   
+    if (!userInfo) {
       return res.status(403).send({
         message: "Tài khoản hoặc mật khẩu không đúng.",
       });
     } else {
-      console.log(data[0]);
+      console.log(userInfo);
 
-      const hashedPassword = await bcrypt.hash(pwd, data.salt);
+      const hashedPassword = await bcrypt.hash(pwd, userInfo.salt);
 
-      if (hashedPassword !== data.password) {
+      if (hashedPassword !== userInfo.password) {
         return res.status(403).send({
           message: "Tài khoản hoặc mật khẩu không đúng.",
         });
@@ -47,8 +70,9 @@ exports.signin = async (req, res) => {
 
       const token = jwt.sign(
         {
-          UserId:data.id,
-          username: data.username
+          UserId:userInfo.UserId,
+          username: userInfo.username,
+          role:userInfo.role
 
         },
         config.secret,
@@ -56,7 +80,6 @@ exports.signin = async (req, res) => {
           expiresIn: 86400, // 24 hours
         }
       );
-
       res.status(200).send({
         accessToken: token,
       });

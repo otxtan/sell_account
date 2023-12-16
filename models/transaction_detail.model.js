@@ -6,7 +6,7 @@ module.exports = (sequelize, Sequelize) => {
             allowNull: false
         },
         price: {
-            type: Sequelize.DOUBLE,
+            type: Sequelize.Sequelize.DECIMAL(18, 2),
             allowNull: false
         },
         oldTotal: {

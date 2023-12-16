@@ -10,6 +10,7 @@ router.get("/getall",[authJwt.verifyToken], account.findAll);
 // router.get("/published", account.findAllPublished);
 // Retrieve account by Page
 router.get("/getbypage", account.findAllByPage);
+router.get("/findAllAccountSubscriptonplanProductByPage",account.findAllAccountSubscriptonplanProductByPage)
 // Retrieve a single Tutorial with id
 router.get("/:id", account.findOne);
 // Update a Tutorial with id

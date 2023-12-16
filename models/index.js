@@ -36,6 +36,7 @@ sequelize.authenticate()
 db.sequelize.sync({
   force: false
   // force: true
+
 })
   .then(() => {
     console.log('Models synchronized with the database.');
@@ -68,11 +69,13 @@ db.payment_method.hasMany(db.transaction);
 db.voucher.hasMany(db.transaction);
 // db.voucher.hasMany(db.transaction_details);
 db.voucher.belongsToMany(db.product, { through: db.voucherProduct });
-db.voucher.belongsToMany(db.category, { through: db.voucherCategory })
 db.product.belongsToMany(db.voucher, { through: db.voucherProduct });
+db.voucherProduct.belongsTo(db.product);
+db.voucher.belongsToMany(db.category, { through: db.voucherCategory });
+db.category.belongsToMany(db.voucher, { through: db.voucherCategory });
+db.voucherCategory.belongsTo(db.category);
 db.product.belongsTo(db.product_type);
 db.product.belongsTo(db.category);
-db.category.belongsToMany(db.voucher, { through: db.voucherCategory });
 // db.voucherProduct = sequelize.define('Vouchers_products', {});
 // db.voucher.belongsToMany(db.product, { through: voucherProduct });
 // product_categories
@@ -81,8 +84,11 @@ db.category.hasMany(db.product);
 db.product_type.hasMany(db.product);
 // account
 db.account.hasOne(db.transaction_details);
+db.account.belongsTo(db.subscription_plan);
 // transaction
 db.transaction.hasMany(db.transaction_details);
+db.transaction.belongsTo(db.payment_method);
+db.transaction.belongsTo(db.user);
 // product
 db.product.hasMany(db.subscription_plan);
 //transaction_detail

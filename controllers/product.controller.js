@@ -16,12 +16,12 @@ exports.create = async (req, res) => {
         }
 
         const product = {
-            name: req.body.name||'',
-            description: req.body.description||'',
-            content: req.body.content||'',
-            image: req.body.image||'',
-            thumbnail: req.body.thumbnail||'',
-            published: parseInt(req.body.published)||false,
+            name: req.body.name || '',
+            description: req.body.description || '',
+            content: req.body.content || '',
+            image: req.body.image || '',
+            thumbnail: req.body.thumbnail || '',
+            published: parseInt(req.body.published) || false,
             ProductCategoryId: req.body.ProductCategoryId,
             ProductTypeId: req.body.ProductTypeId
         };
@@ -81,13 +81,21 @@ exports.findOneDetail = async (req, res) => {
     try {
 
         console.log('giá trị' + productId)
-        const product = await Product.findByPk(req.params.id);
+        const product = await Product.findOne({
+            where: {
+                id: req.params.id
+            },
+            include: [{
+                model: db.category
+            }]
+        });
 
         const subscriptionPlans = await db.subscription_plan.findAll({
             where: {
                 ProductId: productId,
                 published: true
             },
+
         });
 
         const SubscriptionPlanIds = subscriptionPlans.map((subscriptionPlan) => subscriptionPlan.ProductId);
@@ -122,17 +130,54 @@ exports.findOneDetail = async (req, res) => {
         });
     }
 };
-exports.findAllProductByPage = async (req, res) => {
+exports.getProductCheckOut = async (req, res) => {
+
+    try {
+        console.log(req.body)
+        const subcription_plan = req.body;
+        const result = await Promise.all(
+            subcription_plan.map(async item => {
+                const subscriptionPlan = await db.subscription_plan.findOne({
+                    where: {
+                        id: item.SubscriptionPlanId
+                    },
+                    include: [
+                        {
+                            model: db.product
+                        }
+                    ]
+                });
+
+                // Thêm thuộc tính quantity vào đối tượng
+                return {
+                    ...subscriptionPlan.get(),
+                    quantity: item.quantity
+                };
+            })
+        );
+
+        res.send(result);
+
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || `Error retrieving Product details with id=${req.params.id}: ${err.message}`
+        });
+
+    }
+}
+exports.findAllProductByCategoryByPage = async (req, res) => {
     const categoryid = req.query.categoryid ? req.query.categoryid : null;
     // const productId = req.params.productid?req.params.productid:null;
     // const productName = req.params.product?req.params.product:null;
     const categoryName = req.query.categoryname ? req.query.categoryname : '';
-    // console.log(categoryName);
+
+    console.log("gia tri cua categoryNsm" + categoryName);
     try {
         const { limit, offset } = getPagination(req.query.page, req.query.size);
         // tìm với tên là category 
         // const condition = name ? { name: { [Op.like]: `%${categoryName}%` } } : null;
         const categorys = await db.category.findOne({ where: { product_category_name: { [Op.like]: `%${categoryName}%` } } });
+        console.log(categorys)
         if (!categorys) {
             const response = getPagingData([], req.params.page, req.params.limit);
             return res.send({
@@ -154,7 +199,7 @@ exports.findAllProductByPage = async (req, res) => {
         // console.log(products);
         const data = await Promise.all(products.rows.map(async (item) => {
             // console.log(item.dataValues.id);
-            const product = await Product.findByPk(item.dataValues.id); 
+            const product = await Product.findByPk(item.dataValues.id);
             // console.log(product)
             const subscriptionPlans = await db.subscription_plan.findAll({
                 where: {
@@ -194,7 +239,7 @@ exports.findAllProductByPage = async (req, res) => {
 
         ));
         products.rows = data;
-        
+
         return res.send(
             getPagingData(products, req.params.page, limit)
         );
@@ -204,51 +249,97 @@ exports.findAllProductByPage = async (req, res) => {
         });
     }
 };
+exports.findAllProductDetailByPage = async (req, res) => {
+
+    try {
+
+        const { limit, offset } = getPagination(req.query.page, req.query.size);
+        console.log(req.query.name)
+        const condition = req.query.name ? { name: { [Op.like]: `%${req.query.name}%` }, published: true } : { published: true };
+        console.log(condition)
+        const products = await db.product.findAndCountAll({
+            where: condition,
+            limit, offset
+        });
+
+        console.log(products.rows);
+        const data = await Promise.all(products.rows.map(async (item) => {
+            // console.log(item.dataValues.id);
+            const product = await Product.findByPk(item.dataValues.id);
+            // console.log(product)
+            const subscriptionPlans = await db.subscription_plan.findAll({
+                where: {
+                    ProductId: item.dataValues.id,
+                    published: true
+                },
+            });
+
+            const SubscriptionPlanIds = subscriptionPlans.map((subscriptionPlan) => subscriptionPlan.ProductId);
+
+            const transactionDetails = await db.transaction_details.findAll({
+                where: {
+                    SubscriptionPlanId: { [Op.in]: SubscriptionPlanIds },
+                    AccountId: { [Op.ne]: null }
+                },
+            });
+
+            const transactionDetailIds = transactionDetails.map((transactionDetail) => transactionDetail.id);
+            const totalSold = transactionDetailIds.length;
+
+            const reviews = await db.review.findAll({
+                where: {
+                    id: { [Op.in]: transactionDetailIds },
+                },
+            });
+            let rating = 0;
+            reviews.map((review) => { review.id; if (review.vote) rating += review.vote });
+
+            return {
+                product,
+                subscriptionPlans,
+                totalSold,
+                rating,
+                reviews
+            };
+        }
+
+        ));
+        products.rows = data;
+
+        return res.send(
+            getPagingData(products, req.params.page, limit)
+        );
+    } catch (err) {
+        res.status(500).send({
+            message: err.message || `Error retrieving Product details with id=${req.params.id}: ${err.message}`
+        });
+    }
+};
+
 exports.findAllProductCategoryTypeByPage = async (req, res) => {
     // const categoryid = req.query.categoryid ? req.query.categoryid : null;
     // const productId = req.params.productid?req.params.productid:null;
     // const productName = req.params.product?req.params.product:null;
-    const name = req.query.name?req.query.name:null;
+    const name = req.query.name ? req.query.name : null;
     const categoryId = req.query.categoryid ? req.query.categoryid : null;
     const typeId = req.query.typeid ? req.query.typeid : null;
     console.log(req.query);
     console.log(typeId)
     try {
         const { limit, offset } = getPagination(req.query.page, req.query.size);
-        console.log(`limit ${limit}, offset: ${offset}`)
-        // tìm với tên là category 
-        // const condition = name ? { name: { [Op.like]: `%${categoryName}%` } } : null;
 
-        // const categorys = await db.category.findOne({ where: { id: categoryId } });
-        // if (!categorys) {
-        //     const response = getPagingData([], req.params.page, req.params.limit);
-        //     return res.send({
-        //         response
-        //     });
-        // }
-        // const types = await db.product_type.findOne({ where: { id: 0 } });
-        // if (!types) {
-        //     const response = getPagingData([], req.params.page, req.params.limit);
-        //     return res.send({
-        //         response
-        //     });
-        // }
-        // // console.log(categorys)
-        // // console.log(categorys)
-        // const categoryId = categorys.id;
-        // const typeId=types
         let whereCondition = {
-           
+
         };
-        
-        if (categoryId!=null&&categoryId!='undefined') {
+
+        if (categoryId != null && categoryId != 'undefined') {
             whereCondition.ProductCategoryId = categoryId;
         }
-        
-        if (typeId!=null&&typeId!='undefined') {
+
+        if (typeId != null && typeId != 'undefined') {
             whereCondition.ProductTypeId = typeId;
         }
-        if (name!=null&&name!='undefined'){
+        if (name != null && name != 'undefined') {
             whereCondition.name = { [Op.like]: `%${name}%` };
         }
         const products = await db.product.findAndCountAll({
@@ -257,12 +348,12 @@ exports.findAllProductCategoryTypeByPage = async (req, res) => {
                 {
                     model: db.product_type,
                     as: 'Product_type', // Alias cho quan hệ
-                    attributes: ['id', 'product_type_name'] // Chọn các trường bạn muốn lấy từ bảng productType
+                    attributes: ['id', 'product_type_name']
                 },
                 {
                     model: db.category,
-                    as: 'Product_category', // Alias cho quan hệ
-                    attributes: ['id', 'product_category_name'] // Chọn các trường bạn muốn lấy từ bảng productType
+                    as: 'Product_category',
+                    attributes: ['id', 'product_category_name']
                 }
             ],
             limit, offset
@@ -272,7 +363,7 @@ exports.findAllProductCategoryTypeByPage = async (req, res) => {
         const data = await Promise.all(products.rows.map(async (item) => {
             // console.log(item.dataValues.id);
             // const product = await Product.findByPk(item.dataValues.id); 
-            const product=item;
+            const product = item;
             console.log(item)
             const subscriptionPlans = await db.subscription_plan.findAll({
                 where: {
@@ -323,10 +414,11 @@ exports.findAllProductCategoryTypeByPage = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
+    const id = req.params.id;
     try {
-        const id = req.params.id;
+        console.log(req.body)
         const [num] = await Product.update(req.body, { where: { id: id } });
-    
+
 
         if (num === 1) {
             res.send({
